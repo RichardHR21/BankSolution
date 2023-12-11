@@ -1,3 +1,4 @@
+using MimeKit.Encodings;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 namespace BankConsole;
@@ -6,16 +7,19 @@ public static class Storage
 {
     static string filePath = AppDomain.CurrentDomain.BaseDirectory + @"\users.json";
 
-    public static void AddUser(User user)
+    public static bool AddUser(User user)
     {
         string json = "", usersInFile = "";
 
         if(File.Exists(filePath))
             usersInFile = File.ReadAllText(filePath);
+            
+        if(usersInFile.IndexOf($"\"ID\": {user.GetID()}") != -1)
+            return false;
 
         var listUsers = JsonConvert.DeserializeObject<List<object>>(usersInFile);
 
-        if(listUsers == null)
+        if (listUsers == null)
             listUsers = new List<object>();
         
         listUsers.Add(user);
@@ -25,6 +29,8 @@ public static class Storage
         json = JsonConvert.SerializeObject(listUsers, settings);
 
         File.WriteAllText(filePath, json);
+
+        return true;
 
     }
 
@@ -60,7 +66,7 @@ public static class Storage
         return newUsersList;
     }
 
-    public static string DeleteUser(int ID)
+    public static bool DeleteUser(int id)
     {
         string usersInFile = "";
         var listUsers = new List<User>();
@@ -71,7 +77,10 @@ public static class Storage
         var listObjects = JsonConvert.DeserializeObject<List<object>>(usersInFile);
 
         if(listObjects == null)
-            return "There are no users in the file";
+            return false;
+        
+        if(usersInFile.IndexOf($"\"ID\": {id}") == -1)
+            return false;
 
         foreach(object obj in listObjects)
         {
@@ -85,9 +94,10 @@ public static class Storage
             
             listUsers.Add(newUser);
         }
+        
 
-    var userToDelete = listUsers.Where(user => user.GetID() == ID).Single();
-
+    var userToDelete = listUsers.Where(user => user.GetID() == id).Single();
+    
     listUsers.Remove(userToDelete);
 
     JsonSerializerSettings settings = new JsonSerializerSettings{Formatting = Formatting.Indented};
@@ -96,6 +106,6 @@ public static class Storage
 
     File.WriteAllText(filePath, json);
 
-    return "Success";
+    return true;
     }
 }
